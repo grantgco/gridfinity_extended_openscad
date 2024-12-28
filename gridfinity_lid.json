@@ -1,0 +1,22 @@
+{
+    "fileFormatVersion": "1",
+    "parameterSets": {
+        "New set 1": {
+            "Depth": "[2, 0]",
+            "Enable_Magnets": "true",
+            "Lid_Efficient_Base_Height": "0.40000000000000002",
+            "Lid_Efficient_Floor_Thickness": "0.69999999999999996",
+            "Lid_Include_Magnets": "true",
+            "Lid_Options": "default",
+            "Magnet_Size": "[6.5, 2.4]",
+            "Reduced_Wall_Height": "0",
+            "Render_Position": "center",
+            "Width": "[2, 0]",
+            "center_fill_grid_x": "true",
+            "center_fill_grid_y": "true",
+            "cutx": "0",
+            "cuty": "0",
+            "enable_help": "false"
+        }
+    }
+}
