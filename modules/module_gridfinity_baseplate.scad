@@ -41,6 +41,7 @@ module gridfinity_baseplate(
   position_grid_in_outer_y = "center",
   plate_corner_radius=gf_cup_corner_radius,
   magnetSize = Default_Magnet_Size,
+  magnetZOffset=0,
   reducedWallHeight = 0,
   reduceWallTaper = false,
   cornerScrewEnabled  = false,
@@ -58,8 +59,18 @@ module gridfinity_baseplate(
   filamentClipLength = Default_Filament_Clip_Length)
 {
   _gridPositions = customGridEnabled ? gridPositions : [[1]];
-  width = oversizeMethod == "fill" ? num_x : ceil(num_x);
-  depth = oversizeMethod == "fill" ? num_y : ceil(num_y);
+  
+  outer_weidth = oversizeMethod == "outer" ? max(num_x, outer_num_x) : outer_num_x;
+  outer_depth = oversizeMethod == "outer" ? max(num_y, outer_num_y) : outer_num_y;
+  
+  width = 
+    oversizeMethod == "crop" ? ceil(num_x)
+    : oversizeMethod == "outer" ? floor(num_x)
+    : num_x ;
+  depth = 
+    oversizeMethod == "crop" ? ceil(num_y)
+    : oversizeMethod == "outer" ? floor(num_y)
+    : num_y;
 
   intersection(){
     union() {
@@ -72,14 +83,15 @@ module gridfinity_baseplate(
             baseplate(
               width = customGridEnabled ? 1 : width,
               depth = customGridEnabled ? 1 : depth,
-              outer_width = outer_num_x,
-              outer_depth = outer_num_y,
+              outer_width = outer_weidth,
+              outer_depth = outer_depth,
               outer_height = outer_height,
               position_fill_grid_x = position_fill_grid_x,
               position_fill_grid_y = position_fill_grid_y,
               position_grid_in_outer_x = position_grid_in_outer_x,
               position_grid_in_outer_y = position_grid_in_outer_y,
               magnetSize = magnetSize,
+              magnetZOffset=magnetZOffset,
               reducedWallHeight = reducedWallHeight,
               reduceWallTaper = reduceWallTaper,
               cornerScrewEnabled = cornerScrewEnabled,
@@ -113,6 +125,7 @@ module baseplate(
   position_grid_in_outer_x = true,
   position_grid_in_outer_y = true,
   magnetSize = [gf_baseplate_magnet_od,gf_baseplate_magnet_thickness],
+  magnetZOffset=0,
   reducedWallHeight = 0,
   reduceWallTaper = false,
   cornerScrewEnabled = false,
@@ -137,6 +150,7 @@ module baseplate(
           num_x=width, 
           num_y=depth,
           magnetSize=magnetSize, 
+          magnetZOffset=magnetZOffset,
           roundedCorners=roundedCorners);
       }      
       else {
@@ -151,6 +165,7 @@ module baseplate(
           position_grid_in_outer_x = position_grid_in_outer_x,
           position_grid_in_outer_y = position_grid_in_outer_y,
           magnetSize = magnetSize,
+          magnetZOffset=magnetZOffset,
           reducedWallHeight=reducedWallHeight,
           reduceWallTaper=reduceWallTaper,
           centerScrewEnabled = centerScrewEnabled,
