@@ -1,13 +1,11 @@
-include <modules/module_item_holder.scad>
 include <modules/gridfinity_constants.scad>
-include <modules/functions_general.scad>
 use <modules/module_gridfinity_cup.scad>
 use <modules/module_gridfinity.scad>
 
 /*<!!start gridfinity_sieve!!>*/
-
+/* [Sieve] */
 // Should the grid be square or hex
-sieve_grid_style = "hex"; //["square","hex","auto"]
+sieve_grid_style = "hexgrid"; //[grid, gridrotated, hexgrid, hexgridrotated]
 //Spacing around the holes
 sieve_hole_spacing = 3; //0.1
 // 45 deg chamfer added to the top of the hole (mm)
@@ -18,8 +16,6 @@ sieve_hole_sides = 6;
 sieve_hole_size = [10, 10]; //0.1
 // Spacing around the compartments
 sieve_compartment_clearance= 7; //0.1
-// Center the holes within the compartments
-sieve_compartment_centered = true; //0.1
 sieve_compartment_fill = "none"; //["none", "space", "crop"]
 /*<!!end gridfinity_sieve!!>*/
 
@@ -34,8 +30,8 @@ height = [3, 0]; //0.1
 // Wall thickness of outer walls. default, height < 8 0.95, height < 16 1.2, height > 16 1.6 (Zack's design is 0.95 mm)
 wall_thickness = 0;  // .01
 // Remove some or all of lip
-lip_style = "normal";  // [ normal, reduced, minimum, none:not stackable ]
-position = "center"; //[default,center,zero]
+lip_style = "normal";  // [normal, reduced, minimum, none:not stackable]
+render_position = "center"; //[default, center, zero]
 //under size the bin top by this amount to allow for better stacking
 zClearance = 0; // 0.1
       
@@ -65,7 +61,7 @@ label_walls=[0,1,0,0];  //[0:1:1]
 cutx = 0; //0.1
 //Slice along the y axis
 cuty = 0; //0.1
-// enable loging of help messages during render.
+// enable logging of help messages during render.
 enable_help = false;
 /*<!!end gridfinity_basic_cup!!>*/
 
@@ -85,13 +81,12 @@ module gridfinity_sieve(
   sieve_hole_size = sieve_hole_size,
   sieve_hole_spacing = sieve_hole_spacing,
   sieve_hole_chamfer = sieve_hole_chamfer,
-  sieve_compartment_centered = sieve_compartment_centered,
   sieve_compartment_clearance = sieve_compartment_clearance,
   sieve_compartment_fill  = sieve_compartment_fill,
     
   //gridfinity settings
   width=width, depth=depth, height=height,
-  position=position,
+  position=render_position,
   label_settings=LabelSettings(
     labelStyle=label_style, 
     labelPosition=label_position, 
@@ -111,8 +106,7 @@ module gridfinity_sieve(
   wall_thickness=wall_thickness,
   lip_style=lip_style,
   cutx=cutx,
-  cuty=cuty,
-  help=help) {
+  cuty=cuty) {
   
   difference() {
     num_x = calcDimensionWidth(width);
@@ -123,35 +117,32 @@ module gridfinity_sieve(
     /*<!!start gridfinity_basic_cup!!>*/
     gridfinity_cup(
       width=width, depth=depth, height=height,
-      position=position,
       label_settings=label_settings,
       filled_in=false,
       cupBase_settings=cupBase_settings,
       wall_thickness=wall_thickness,
       lip_style=lip_style,
       zClearance=zClearance,
-      cutx=cutx,
-      cuty=cuty,
-      help = enable_help);
+        floor_pattern_settings = PatternSettings(
+        patternEnabled = true, 
+        patternStyle = sieve_grid_style, 
+        patternFill = sieve_compartment_fill,
+        patternBorder = sieve_compartment_clearance, 
+        patternHoleSize = holeSize, 
+        patternHoleSides = 6,
+        patternHoleSpacing = sieve_hole_spacing,
+        patternVariable = sieve_hole_chamfer));
     /*<!!end gridfinity_basic_cup!!>*/
-
-    color(color_extension)
-    translate([0,0,-fudgeFactor])
-      GridItemHolder(
-        canvasSize = [num_x*gf_pitch,num_y*gf_pitch],
-        hexGrid = sieve_grid_style == "hex",
-        //customShape = item[4] == "square",
-        circleFn = sieve_hole_sides,
-        holeSize = holeSize,
-        holeSpacing = [sieve_hole_spacing,sieve_hole_spacing],
-        holeGrid = [0,0],
-        holeHeight = floor_thickness+fudgeFactor*6,//_depth+fudgeFactor,
-        holeChamfer = sieve_hole_chamfer,
-        border = sieve_compartment_clearance,
-        center=sieve_compartment_centered,
-        fill=sieve_compartment_fill,
-        help=help);
   }
 }
 
+SetGridfinityEnvironment(
+  width = width,
+  depth = depth,
+  height = height,
+  render_position = render_position,
+  help = enable_help,
+  cutx = cutx,
+  cuty = cuty,
+  cutz = calcDimensionHeight(height, true))
 gridfinity_sieve();

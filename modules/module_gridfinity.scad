@@ -16,7 +16,7 @@ module grid_block(
   filledin = "disabled", //[disabled, enabled, enabledfilllip]
   wall_thickness = 1.2,
   cupBase_settings = CupBaseSettings(),
-  $fn = 32,
+  $fn = 64,
   help)
 {
   lipHeight = 3.75;
@@ -54,7 +54,8 @@ module grid_block(
       num_x = num_x, 
       num_y = num_y, 
       lipStyle = lipStyle,
-      wall_thickness = wall_thickness);
+      wall_thickness = wall_thickness,
+      $fn=$fn);
   }
         
   translate(cupPosition(position,num_x,num_y))
@@ -66,7 +67,7 @@ module grid_block(
         tz(-fudgeFactor)
         hull() 
         cornercopy(block_corner_position, num_x, num_y) 
-        cylinder(r=gf_cup_corner_radius, h=gf_zpitch*num_z+fudgeFactor*3, $fn=$fn);
+        cylinder(r=gf_cup_corner_radius, h=gf_zpitch*num_z, $fn=$fn);
 
       union(){
         // logic for constructing odd-size grids of possibly half-pitch pads
@@ -348,7 +349,7 @@ module gridcopycorners(num_x, num_y, r, onlyBoxCorners = false, pitch=gf_pitch, 
       cornerVisible = 
         (!reverseAlignment.x && gridPosition.x <= num_x || reverseAlignment.x && 1.5-gridPosition.x <= num_x) && 
         (!reverseAlignment.y && gridPosition.y <= num_y || reverseAlignment.y && 1.5-gridPosition.y <= num_y);
-      if(IsHelpEnabled("info")) echo("gridcopycorners", num_x=num_x,num_y=num_y, gcci=$gcci, gridPosition=gridPosition, reverseAlignment=reverseAlignment, cornerVisible=cornerVisible);
+      if(IsHelpEnabled("debug")) echo("gridcopycorners", num_x=num_x,num_y=num_y, gcci=$gcci, gridPosition=gridPosition, reverseAlignment=reverseAlignment, cornerVisible=cornerVisible);
       //only copy if the cell is atleast half size
       if(cornerVisible)
         //only box corners or every cell corner
@@ -378,7 +379,7 @@ module cornercopy(r, num_x=1, num_y=1,pitch=gf_pitch, center = false) {
     $idx=[xx,yy,0];
     xpos = xx == 0 ? -r : max(pitch*(num_x-1)+r,-r);
     ypos = yy == 0 ? -r : max(pitch*(num_y-1)+r,-r);
-    if(IsHelpEnabled("info")) echo("cornercopy", num_x=num_x,num_y=num_y,pitch=pitch, center=center, idx=$idx, gridPosition=[xpos,ypos,0]);
+    if(IsHelpEnabled("debug")) echo("cornercopy", num_x=num_x,num_y=num_y,pitch=pitch, center=center, idx=$idx, gridPosition=[xpos,ypos,0]);
     translate([xpos, ypos, 0]) 
       children();
   }
