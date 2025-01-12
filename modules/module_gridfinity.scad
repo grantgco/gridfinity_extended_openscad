@@ -7,6 +7,7 @@ include <module_lip.scad>
 
 // basic block with cutout in top to be stackable, optional holes in bottom
 // start with this and begin 'carving'
+//grid_block();
 module grid_block(
   num_x=1, 
   num_y=2, 
@@ -16,7 +17,6 @@ module grid_block(
   filledin = "disabled", //[disabled, enabled, enabledfilllip]
   wall_thickness = 1.2,
   cupBase_settings = CupBaseSettings(),
-  $fn = 64,
   help)
 {
   lipHeight = 3.75;
@@ -48,14 +48,13 @@ module grid_block(
       tz(-fudgeFactor)
       hull() 
       cornercopy(block_corner_position, num_x, num_y) 
-      cylinder(r=gf_cup_corner_radius, h=lipHeight, $fn=$fn);
+      cylinder(r=gf_cup_corner_radius, h=lipHeight);
   } else {
     cupLip(
       num_x = num_x, 
       num_y = num_y, 
       lipStyle = lipStyle,
-      wall_thickness = wall_thickness,
-      $fn=$fn);
+      wall_thickness = wall_thickness);
   }
         
   translate(cupPosition(position,num_x,num_y))
@@ -67,12 +66,31 @@ module grid_block(
         tz(-fudgeFactor)
         hull() 
         cornercopy(block_corner_position, num_x, num_y) 
-        cylinder(r=gf_cup_corner_radius, h=gf_zpitch*num_z, $fn=$fn);
+        cylinder(r=gf_cup_corner_radius, h=gf_zpitch*num_z);
 
       union(){
-        // logic for constructing odd-size grids of possibly half-pitch pads
-        color(getColour(color_base))
-          pad_grid(num_x, num_y, half_pitch, flat_base, cupBase_settings[iCupBase_MinimumPrintablePadSize]);
+        if(flat_base == FlatBase_rounded){
+          basebottomRadius = let(fbr = cupBase_settings[iCupBase_FlatBaseRoundedRadius])
+            fbr == -1 ? gf_cup_corner_radius/2 : fbr;
+
+          color(getColour(color_cup))
+          translate([0.25,0.25,0])
+          roundedCube(
+            x = num_x*gf_pitch-0.5,
+            y = num_y*gf_pitch-0.5,
+            z = gf_zpitch,
+            size=[],
+            topRadius = 0,
+            bottomRadius = basebottomRadius,
+            sideRadius = gf_cup_corner_radius,
+            centerxy = false,
+            supportReduction_z = [cupBase_settings[iCupBase_FlatBaseRoundedEasyPrint],0]
+            );
+        } else {
+          // logic for constructing odd-size grids of possibly half-pitch pads
+          color(getColour(color_base))
+            pad_grid(num_x, num_y, half_pitch, flat_base != FlatBase_off, cupBase_settings[iCupBase_MinimumPrintablePadSize]);
+        }
         
         color(getColour(color_cup))
         tz(baseHeight) 
@@ -88,7 +106,7 @@ module grid_block(
         {
           color(getColour(color_basehole))
           translate([x*gf_pitch,y*gf_pitch,-fudgeFactor])
-            cylinder(h=center_magnet_size[iCylinderDimension_Height]-fudgeFactor, d=center_magnet_size[iCylinderDimension_Diameter], $fn=$fn);
+            cylinder(h=center_magnet_size[iCylinderDimension_Height]-fudgeFactor, d=center_magnet_size[iCylinderDimension_Diameter]);
         }
       }
     }
@@ -195,7 +213,7 @@ module pad_oversize(
         }
         else {
           tz(bevel2_bottom) 
-          cylinder(d1=3.2+2*radialgap, d2=7.5+0.5+2*radialgap+2*bonus_ht, h=bevel2_top-bevel2_bottom+bonus_ht, $fn=32);
+          cylinder(d1=3.2+2*radialgap, d2=7.5+0.5+2*radialgap+2*bonus_ht, h=bevel2_top-bevel2_bottom+bonus_ht);
         }
       }
       
@@ -206,9 +224,9 @@ module pad_oversize(
             translate([0, 0, bevel1_top]) cylsq(d=3.2+2*radialgap, h=1.9);
           }
           else {
-            cylinder(d=1.6+2*radialgap, h=0.1, $fn=24);
+            cylinder(d=1.6+2*radialgap, h=0.1);
             translate([0, 0, bevel1_top]) 
-              cylinder(d=3.2+2*radialgap, h=1.9, $fn=32);
+              cylinder(d=3.2+2*radialgap, h=1.9);
           }
       }
  
@@ -221,7 +239,7 @@ module pad_oversize(
             cylsq(d=1.6+2*radialgap, h=extend_down+fudgeFactor);
           }
           else {
-            cylinder(d=1.6+2*radialgap, h=extend_down+fudgeFactor, $fn=24);
+            cylinder(d=1.6+2*radialgap, h=extend_down+fudgeFactor);
           }
         }
         //for baseplate patterns

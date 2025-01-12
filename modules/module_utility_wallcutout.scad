@@ -54,15 +54,14 @@ function calculateWallCutout(
           [wallcutoutLowerWidth, wallcutoutThickness, wallcutoutHeight],
           wallcutout_rotation,
           walcutout_reposition]) [wallcutout_close, wallcutout_far];
-          
+
 module WallCutout(
   lowerWidth=50,
   wallAngle=70,
   height=21,
   thickness=10,
   cornerRadius=5,
-  topHeight,
-  $fn = 64) {
+  topHeight) {
  
   topHeight = is_undef(topHeight) || topHeight < 0 ? cornerRadius*4 : topHeight;
   bottomWidth = lowerWidth;
@@ -92,3 +91,4 @@ module WallCutout(
     }
   }
 }
+
