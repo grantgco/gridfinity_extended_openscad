@@ -13,13 +13,14 @@ module baseplate_regular(
   position_fill_grid_y = "near",
   position_grid_in_outer_x = "center",
   position_grid_in_outer_y = "center",
-  magnetSize = [gf_baseplate_magnet_od,gf_baseplate_magnet_thickness],
+  magnetSize = [0,0],
   magnetZOffset=0,
-  reducedWallHeight=0,
+  magnetTopCover=0,
+  reducedWallHeight=-1,
   reduceWallTaper = false,
-  centerScrewEnabled = true,
-  cornerScrewEnabled = true,
-  weightHolder = true,
+  centerScrewEnabled = false,
+  cornerScrewEnabled = false,
+  weightHolder = false,
   cornerRadius = gf_cup_corner_radius,
   roundedCorners = 15) {
 
@@ -35,8 +36,9 @@ module baseplate_regular(
     cornerScrewEnabled ? screwDepth : 0,
     cornerScrewEnabled ? magnetSize[1] + counterSinkDepth + minFloorThickness : 0,
     weightHolder ? weightDepth+minFloorThickness : 0,
-    magnetSize.y+magnetZOffset);
-    
+    magnetSize.y+magnetZOffset+magnetTopCover);
+  $frameBaseHeight = frameBaseHeight;
+
     translate([0,0,frameBaseHeight])
     frame_plain(
       grid_num_x = grid_num_x,
@@ -52,18 +54,19 @@ module baseplate_regular(
       cornerRadius = cornerRadius,
       reducedWallHeight=reducedWallHeight,
       reduceWallTaper=reduceWallTaper,
-      roundedCorners = roundedCorners)
-        translate([0,0,fudgeFactor])
+      roundedCorners = roundedCorners){
+        //translate([0,0,-fudgeFactor])
         difference(){
           translate([fudgeFactor,fudgeFactor,fudgeFactor])
-            cube([gf_pitch-fudgeFactor*2,gf_pitch-fudgeFactor*2,frameBaseHeight+fudgeFactor*2]);
-            
+          cube([env_pitch().x-fudgeFactor*2,env_pitch().y-fudgeFactor*2,frameBaseHeight+fudgeFactor*2]);
+
           baseplate_cavities(
             num_x = $gc_size.x,
             num_y = $gc_size.y,
-            baseCavityHeight=frameBaseHeight,
+            baseCavityHeight=frameBaseHeight+fudgeFactor,
             magnetSize = magnetSize,
             magnetZOffset=magnetZOffset,
+            magnetTopCover=magnetTopCover,
             centerScrewEnabled = centerScrewEnabled && $gc_is_corner.x && $gc_is_corner.y,
             cornerScrewEnabled = cornerScrewEnabled,
             weightHolder = weightHolder,
@@ -71,4 +74,7 @@ module baseplate_regular(
             roundedCorners = roundedCorners,
             reverseAlignment = [$gci.x == 0, $gci.y==0]);
         }
+
+        children();
+      }
 }

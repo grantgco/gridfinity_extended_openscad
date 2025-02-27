@@ -2,6 +2,7 @@
 include <modules/gridfinity_constants.scad>
 use <modules/module_gridfinity.scad>
 use <modules/module_gridfinity_baseplate.scad>
+use <modules/module_gridfinity_baseplate_connectors.scad>
 
 // Plate Style
 Base_Plate_Options = "default";//[default:Efficient base, cnclaser:CNC or Laser cut]
@@ -21,7 +22,7 @@ outer_Height = 0; //0.1
 position_grid_in_outer_x = "center";//[near, center, far]
 position_grid_in_outer_y = "center";//[near, center, far]
 //Reduce the frame wall size to this value
-Reduced_Wall_Height = 0; //0.1
+Reduced_Wall_Height = -1; //0.1
 Reduced_Wall_Taper = false; 
 plate_corner_radius = 3.75; //[0:0.01:3.75]
 /* [Printer bed options] */
@@ -36,8 +37,10 @@ build_plate_size = [200,250];
 Enable_Magnets = false;
 //size of magnet, diameter and height. Zacks original used 6.5 and 2.4 
 Magnet_Size = [6.5, 2.4];  // .1
-//raises the magnet, and creates a floor (for gluding)
+//raises the magnet, and creates a floor (for gluing)
 Magnet_Z_Offset = 0;  // .1
+//raises the magnet, and creates a ceiling to capture the magnet
+Magnet_Top_Cover = 0;  // .1
 
 //Enable screws in the bin corner under the magnets
 Corner_Screw_Enabled = false;
@@ -46,18 +49,24 @@ Center_Screw_Enabled = false;
 //Enable cavity to place frame weights
 Enable_Weight = false;
 
-/* [Base Plate Clips - POC don't use yet]*/
-//This feature is not yet finalized, or working properly. 
-Butterfly_Clip_Enabled = false;
-Butterfly_Clip_Size = [6,6,1.5];
-Butterfly_Clip_Radius = 0.1;
-Butterfly_Clip_Tolerance = 0.1;
-Butterfly_Clip_Only = false;
+/* [Base Plate Clips]*/
+Connector_Only = false;
+Connector_Position = "center_wall"; //["center_wall","intersection","both"]
+
+Connector_Clip_Enabled = false;
+Connector_Clip_Size = 10;
+Connector_Clip_Tolerance = 0.1;
 
 //This feature is not yet finalized, or working properly. 
-Filament_Clip_Enabled = false;
-Filament_Clip_Diameter = 2;
-Filament_Clip_Length = 8;
+Connector_Butterfly_Enabled = false;
+Connector_Butterfly_Size = [5,4,1.5];
+Connector_Butterfly_Radius = 0.1;
+Connector_Butterfly_Tolerance = 0.1;
+
+//This feature is not yet finalized, or working properly. 
+Connector_Filament_Enabled = false;
+Connector_Filament_Diameter = 2;
+Connector_Filament_Length = 8;
 
 /* [Custom Grid]*/
 //Enable custom grid, you will configure this in the (Lid not supported)
@@ -68,21 +77,24 @@ Custom_Grid_Enabled = false;
 //0:off the cell is off
 //1:on the cell is on and all corners are rounded
 //2-16, are bitwise values used to calculate what corners should be rounded, you need to subtract 2 from the value for the bitwise logic (so it does not clash with 0 and 1).
-xpos1 = [3,4,0,0,3,4,0];
-xpos2 = [2,2,0,0,2,2,0];
-xpos3 = [2,2,0,0,2,2,0];
+//[c,[x,y]], c corner value as shown above. [x,y] x and y size of the cell.
+xpos1 = [3,[2,[3,3]],0,0,2,4,0];
+xpos2 = [2,0,0,0,2,2,0];
+xpos3 = [2,0,0,0,2,2,0];
 xpos4 = [2,2,2,2,2,2,0];
 xpos5 = [6,2,2,2,2,10,0];
 xpos6 = [0,0,0,0,0,0,0];
 xpos7 = [0,0,0,0,0,0,0];
 
 /* [Model detail] */
+//Work in progress,  Modify the default grid size. Will break compatibility
+pitch = [42,42,7];  //[0:1:9999]
 // minimum angle for a fragment (fragments = 360/fa).  Low is more fragments 
-$fa = 6; 
+fa = 6; 
 // minimum size of a fragment.  Low is more fragments
-$fs = 0.1; 
+fs = 0.1; 
 // number of fragments, overrides $fa and $fs
-$fn = 0;  
+fn = 0;  
 
 /* [debug] */
 Render_Position = "center"; //[default,center,zero]
@@ -95,7 +107,12 @@ enable_help = false;
 
 /* [Hidden] */
 module end_of_customizer_opts() {}
-   
+
+//Some online generators do not like direct setting of fa,fs,fn
+$fa = fa; 
+$fs = fs; 
+$fn = fn;   
+
 function split_dimention(gf_size, gf_outer_size, plate_size, position_fill_grid, position_grid_in_outer, average_plate_sizes = false) =
   assert(is_num(gf_size), "gf_size must be a number")
   assert(is_num(gf_outer_size), "gf_outer_size must be a number")
@@ -137,8 +154,8 @@ function split_plate(num_x, num_y,
     build_plate_size,
     average_plate_sizes) =
   let(
-    max_x = build_plate_size.x/gf_pitch,
-    max_y = build_plate_size.y/gf_pitch,
+    max_x = build_plate_size.x/env_pitch().x,
+    max_y = build_plate_size.y/env_pitch().y,
     list_x = split_dimention(num_x, outer_num_x, max_x, position_fill_grid_x, position_grid_in_outer_x, average_plate_sizes),
     list_y = split_dimention(num_y, outer_num_y, max_y, position_fill_grid_y, position_grid_in_outer_y, average_plate_sizes),
     list = [for(iy=[0:len(list_y)-1]) [for(ix=[0:len(list_x)-1]) [[ix,iy], [list_x[ix],list_y[iy]]]]])
@@ -179,14 +196,35 @@ iPlate_posGrid = 1;
 iPlate_outerSize = 2;
 iPlate_posOuter = 3;
     
-if(Butterfly_Clip_Only)
+if(Connector_Only)
 {
-  ButterFly(
+  if(Connector_Clip_Enabled) {
+    ClipConnector(
+      size=Connector_Clip_Size, 
+      clearance = Connector_Clip_Tolerance,
+      fullIntersection = true);
+
+    translate([0,15,0])
+    ClipConnector(
+      size=Connector_Clip_Size, 
+      straightIntersection = true,
+      clearance = Connector_Clip_Tolerance);
+    
+    translate([0,30,0])
+    ClipConnector(
+      size=Connector_Clip_Size, 
+      straightWall = true,
+      clearance = Connector_Clip_Tolerance);
+  }
+  
+  if(Connector_Butterfly_Enabled)
+  translate([20,0,0])
+  ButterFlyConnector(
     size=[
-      Butterfly_Clip_Size.x+Butterfly_Clip_Tolerance,
-      Butterfly_Clip_Size.y+Butterfly_Clip_Tolerance,
-      Butterfly_Clip_Size.z],
-    r=Butterfly_Clip_Radius);
+      Connector_Butterfly_Size.x-Connector_Butterfly_Tolerance,
+      Connector_Butterfly_Size.y-Connector_Butterfly_Tolerance,
+      Connector_Butterfly_Size.z-Connector_Butterfly_Tolerance],
+    r=Connector_Butterfly_Radius);
 }
 else 
 {
@@ -220,17 +258,16 @@ else
     iy*build_plate_size.y+iy*5,
     0];
   if(build_plate_enabled == "unique" && !plate[2] || build_plate_enabled != "unique")
-  conditional_color(len(plate_list) > 1, plate[2] ? "#404040" : "#006400")
+  color_conditional(len(plate_list) > 1, plate[2] ? "#404040" : "#006400")
   translate(pos)
-  conditional_render(len(plate_list) > 1)//plate[2])
-  SetGridfinityEnvironment(
+  render_conditional(len(plate_list) > 1)//plate[2])
+  set_environment(
     width = plate[1].x[iPlate_size],
     depth = plate[1].y[iPlate_size],
     render_position = Render_Position,
+    pitch = pitch,
     help = enable_help,
-    cutx = cutx,
-    cuty = cuty,
-    cutz = 2)
+    cut = [cutx, cuty, 2])
     gridfinity_baseplate(
       num_x = plate[1].x[iPlate_size],//calcDimensionWidth(Width),
       num_y = plate[1].y[iPlate_size],//calcDimensionWidth(Depth),
@@ -244,6 +281,7 @@ else
       plate_corner_radius = plate_corner_radius,
       magnetSize = Enable_Magnets ? Magnet_Size : [0,0],
       magnetZOffset = Magnet_Z_Offset,
+      magnetTopCover=Magnet_Top_Cover,
       reducedWallHeight = Reduced_Wall_Height, 
       reduceWallTaper = Reduced_Wall_Taper, 
       cornerScrewEnabled  = Corner_Screw_Enabled,
@@ -253,11 +291,16 @@ else
       plateOptions = Base_Plate_Options,
       customGridEnabled = Custom_Grid_Enabled,
       gridPositions=[xpos1,xpos2,xpos3,xpos4,xpos5,xpos6,xpos7],
-      butterflyClipEnabled  = Butterfly_Clip_Enabled,
-      butterflyClipSize = Butterfly_Clip_Size,
-      butterflyClipRadius = Butterfly_Clip_Radius,
-      filamentClipEnabled=Filament_Clip_Enabled,
-      filamentClipDiameter=Filament_Clip_Diameter,
-      filamentClipLength=Filament_Clip_Length);
+      connectorPosition = Connector_Position,
+      connectorClipEnabled  = Connector_Clip_Enabled,
+      connectorClipSize = Connector_Clip_Size,
+      connectorClipTolerance = Connector_Clip_Tolerance,
+      connectorButterflyEnabled  = Connector_Butterfly_Enabled,
+      connectorButterflySize = Connector_Butterfly_Size,
+      connectorButterflyRadius = Connector_Butterfly_Radius,
+      connectorButterflyTolerance = Connector_Butterfly_Tolerance,
+      connectorFilamentEnabled=Connector_Filament_Enabled,
+      connectorFilamentDiameter=Connector_Filament_Diameter,
+      connectorFilamentLength=Connector_Filament_Length);
   }
 }
